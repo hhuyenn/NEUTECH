@@ -46,7 +46,7 @@ Website chỉ chạy frontend và lưu dữ liệu trên máy khách, vì vậy 
 1. Thêm sản phẩm vào giỏ, chỉnh số lượng hoặc xóa sản phẩm.
 2. Tại trang đặt hàng, chọn nhận tại cửa hàng hoặc giao tận nơi; điền địa chỉ tương ứng.
 3. Có thể yêu cầu hóa đơn công ty với mã số thuế hợp lệ. Chỉ có hai hình thức thanh toán: thanh toán khi nhận hàng (tại cửa hàng hoặc COD khi giao tận nơi) và chuyển khoản QR. Hóa đơn công ty không áp dụng thanh toán khi nhận hàng; đơn trên 5.000.000đ chỉ có lựa chọn chuyển khoản QR mô phỏng.
-4. Chọn phương thức thanh toán phù hợp rồi xác nhận. Ảnh QR tại `assets/images/vietqr.png` chỉ dùng minh họa, website không xử lý thanh toán thật.
+4. Chọn phương thức thanh toán phù hợp rồi xác nhận. Với chuyển khoản QR, website mở hộp thoại hiển thị mã QR, tổng tiền gồm phí giao hàng và mã đơn làm nội dung chuyển khoản; chọn “Tôi đã chuyển khoản” để lưu đơn và xem hợp đồng, hoặc quay lại checkout. Ảnh QR tại `assets/images/vietqr.png` chỉ dùng minh họa, website không xử lý thanh toán thật.
 5. Tra cứu bằng mã đơn và số điện thoại, hoặc mở danh sách đơn gần đây được lưu trên trình duyệt này. Đơn ở trạng thái “Đang xác nhận” có thể gửi yêu cầu hủy kèm lý do; hợp đồng điện tử vẫn xem được từ trang tra cứu hoặc kết quả đặt hàng.
 
 Giỏ hàng, đơn hàng, sản phẩm, danh mục, bài viết, nội dung giới thiệu và tin nhắn liên hệ được lưu bằng `localStorage`. Dữ liệu chỉ dùng chung trong cùng trình duyệt và origin của Live Server, không đồng bộ giữa thiết bị/trình duyệt. Xóa dữ liệu trang web sẽ xóa dữ liệu demo. Hình ảnh sản phẩm mẫu tải từ Unsplash; nếu ảnh ngoài không tải được, trang dùng ảnh dự phòng cục bộ tại `assets/images/product-placeholder.svg`.

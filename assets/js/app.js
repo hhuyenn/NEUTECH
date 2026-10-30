@@ -10,6 +10,9 @@
     about: "novatech_about",
     contacts: "novatech_contacts",
   };
+  let pendingQrOrder = null;
+  let qrModalTrigger = null;
+  let previousBodyOverflow = "";
   const money = (value) =>
     new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -551,8 +554,6 @@
       if (eligible[0])
         (defaultChoice || eligible[0]).querySelector("input").checked = true;
     }
-    document.getElementById("qr-payment").hidden =
-      form.querySelector('[name="payment"]:checked')?.value !== "qr";
     const button = document.getElementById("place-order-button");
     button.textContent = `Đặt hàng · ${money(subtotal + fee)}`;
     const limitNote = document.getElementById("payment-limit-note");
@@ -568,6 +569,33 @@
         : fee
           ? "Phí giao hàng dự kiến được tính theo địa chỉ nhận hàng."
           : "Miễn phí giao hàng từ 2.000.000đ; nhận tại cửa hàng không mất phí.";
+  }
+
+  function finalizeOrder(order) {
+    save(STORE.orders, [...orders(), order]);
+    save(STORE.cart, []);
+    renderOrderSuccess(order);
+  }
+
+  function openQrPayment(order) {
+    pendingQrOrder = order;
+    qrModalTrigger = document.activeElement;
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `<div class="qr-dialog-backdrop" data-qr-backdrop><section class="qr-dialog" role="dialog" aria-modal="true" aria-labelledby="qr-dialog-title" aria-describedby="qr-dialog-description"><button type="button" class="dialog-close" data-close-qr aria-label="Đóng">×</button><h2 id="qr-dialog-title">Quét mã để thanh toán</h2><p id="qr-dialog-description">Quét mã QR bằng ứng dụng ngân hàng để chuyển khoản.</p><img class="qr-dialog-image" src="assets/images/vietqr.png" alt="Mã QR chuyển khoản NEUTech"><p class="qr-dialog-amount">${money(order.total)}</p><p class="qr-dialog-transfer">Nội dung chuyển khoản: <strong>${safe(order.id)}</strong></p><p class="qr-dialog-note">Bản demo, không xử lý tiền thật.</p><div class="dialog-actions"><button type="button" class="button button-outline" data-close-qr>Quay lại</button><button type="button" class="button button-primary" data-confirm-qr>Tôi đã chuyển khoản</button></div></section></div>`,
+    );
+    document.querySelector(".qr-dialog [data-close-qr]")?.focus();
+  }
+
+  function closeQrPayment() {
+    document.querySelector(".qr-dialog-backdrop")?.remove();
+    document.body.style.overflow = previousBodyOverflow;
+    pendingQrOrder = null;
+    if (qrModalTrigger instanceof HTMLElement && qrModalTrigger.isConnected)
+      qrModalTrigger.focus();
+    qrModalTrigger = null;
   }
 
   function renderOrderSuccess(order) {
@@ -831,12 +859,26 @@
   }
 
   document.addEventListener("click", (event) => {
+    if (event.target.matches("[data-qr-backdrop]")) {
+      closeQrPayment();
+      return;
+    }
     if (event.target.matches("[data-cancel-backdrop]")) {
       document.querySelector(".cancel-dialog-backdrop")?.remove();
       return;
     }
     const target = event.target.closest("button");
     if (!target) return;
+    if (target.hasAttribute("data-close-qr")) {
+      closeQrPayment();
+      return;
+    }
+    if (target.hasAttribute("data-confirm-qr")) {
+      const order = pendingQrOrder;
+      closeQrPayment();
+      if (order) finalizeOrder(order);
+      return;
+    }
     if (target.dataset.add) addToCart(target.dataset.add);
     if (target.dataset.quantity) {
       const current = cart();
@@ -986,6 +1028,44 @@
     }
     if (target.hasAttribute("data-close-cancel")) {
       document.querySelector(".cancel-dialog-backdrop")?.remove();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const dialog = document.querySelector(".qr-dialog");
+    if (!dialog) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeQrPayment();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = [
+      ...dialog.querySelectorAll(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ];
+    if (!focusable.length) {
+      event.preventDefault();
+      dialog.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (
+      event.shiftKey &&
+      (document.activeElement === first ||
+        !dialog.contains(document.activeElement))
+    ) {
+      event.preventDefault();
+      last.focus();
+    } else if (
+      !event.shiftKey &&
+      (document.activeElement === last ||
+        !dialog.contains(document.activeElement))
+    ) {
+      event.preventDefault();
+      first.focus();
     }
   });
 
@@ -1168,9 +1248,11 @@
           ) + fee,
         subtotal,
       };
-      save(STORE.orders, [...orders(), newOrder]);
-      save(STORE.cart, []);
-      renderOrderSuccess(newOrder);
+      if (selectedPayment === "qr") {
+        openQrPayment(newOrder);
+        return;
+      }
+      finalizeOrder(newOrder);
     }
     if (form.id === "contact-form") {
       event.preventDefault();
